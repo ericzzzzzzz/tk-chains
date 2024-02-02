@@ -112,6 +112,7 @@ func subjectsFromTektonObject(ctx context.Context, obj objects.TektonObject) []i
 			})
 		}
 	}
+	
 
 	sts := artifacts.ExtractSignableTargetFromResults(ctx, obj)
 	for _, obj := range sts {
@@ -151,6 +152,19 @@ func subjectsFromTektonObject(ctx context.Context, obj objects.TektonObject) []i
 			// More info: https://tekton.dev/docs/pipelines/resources/
 			if !ok || trV1Beta1.Spec.Resources == nil { //nolint:staticcheck
 				return subjects
+			}
+			for _, ss := range trV1.Status.Steps {
+				for _, o := range ss.Outputs {
+					for _, v := range o.Values {
+						s := strings.Split(v.Digest, ":")
+						subjects = artifact.AppendSubjects(subjects, intoto.Subject{
+							Name: v.Uri,
+							Digest: common.DigestSet{
+								s[0]: s[1],
+							},
+						})
+					}
+				}
 			}
 
 			// go through resourcesResult
